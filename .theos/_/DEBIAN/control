@@ -1,0 +1,10 @@
+Package: com.iTheGentle.SaveBot
+Name: SaveBot
+Depends: mobilesubstrate
+Architecture: iphoneos-arm
+Description: Save Videos From TweetBot
+Maintainer: iTheGentle
+Author: iTheGentle
+Section: Tweaks
+Version: 1.9-36
+Installed-Size: 488

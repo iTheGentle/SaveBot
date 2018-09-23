@@ -1,0 +1,91 @@
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import <objc/runtime.h>
+
+@interface PTHTweetbotStatus : UIViewController
+-(id)emailHTML;
+@end
+
+
+@interface PTHTweetbotMediaController : PTHTweetbotStatus
+-(void)GetUrl;
+
+@end
+
+
+
+%hook PTHTweetbotMediaController
+%new
+- (void)GetUrl {
+
+
+
+NSString *io = MSHookIvar<NSString *>(self,"_expandedURLText");
+	NSDictionary *url= MSHookIvar<NSDictionary *>(self, "_launchMediumResponseDictionary");
+NSString *x = [NSString stringWithFormat:@"%@",[url valueForKey:@"PTHTweetbotMediumResponseMovieURL"]];
+
+NSString *c = [NSString stringWithContentsOfURL:[NSURL URLWithString:x]];
+NSArray *ar = [c componentsSeparatedByString:@"RESOLUTION="];
+
+for (int i = 1; i <= [ar count] -1; i++)
+{
+	NSString *response = [NSString stringWithFormat:@"%@",ar[i]];
+	NSArray *RxR = [response componentsSeparatedByString:@","];
+	NSArray *m3u8Array = [response componentsSeparatedByString:@"\""];
+	NSString *m3u8Str = [NSString stringWithFormat:@"%@",m3u8Array[2]];
+	m3u8Str = [m3u8Str stringByReplacingOccurrencesOfString:@" " withString:@""];
+	m3u8Str = [[m3u8Str componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@""];
+NSArray *m3u8 = [m3u8Str componentsSeparatedByString:@".m3u8"];
+NSString *c = [NSString stringWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"https://video.twimg.com%@.m3u8",m3u8[0]]]];
+NSArray *ar = [c componentsSeparatedByString:@","];
+response = [NSString stringWithFormat:@"%@",ar[1]];
+response = [response stringByReplacingOccurrencesOfString:@" " withString:@""];
+response = [[response componentsSeparatedByCharactersInSet:[NSCharacterSet newlineCharacterSet]] componentsJoinedByString:@""];
+NSArray *MP4 = [response componentsSeparatedByString:@".ts"];
+NSString *f = [NSString stringWithFormat:@"https://video.twimg.com%@.mp4",MP4[0]];
+NSString *documentDir = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+NSString *filePath = [documentDir stringByAppendingPathComponent:[NSString stringWithFormat:@"%@.mp4",RxR[0]]];
+
+					// NSURL  *url = [NSURL URLWithString:urlToDownload];
+
+dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+            NSLog(@"Downloading Started");
+
+            // NSURL  *url = [NSURL URLWithString:urlToDownload];
+            NSData *urlData = [NSData dataWithContentsOfURL:[NSURL URLWithString:f]];
+
+                //saving is done on main thread
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [urlData writeToFile:filePath atomically:YES];
+                    // [ProgressHUD dismiss];
+										UISaveVideoAtPathToSavedPhotosAlbum(filePath,nil,nil,nil);
+										[[[UIAlertView alloc] initWithTitle:@"saved" message:io delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil] show];});
+
+});}}
+
+
+
+
+
+
+
+
+-(void)loadView {
+	%orig;
+
+
+
+	UIButton *button = [UIButton buttonWithType:UIButtonTypeCustom];
+button.backgroundColor=[UIColor colorWithRed:0.14 green:0.62 blue:0.82 alpha:1.0];
+
+	[button addTarget:self action:@selector(GetUrl)
+ forControlEvents:UIControlEventTouchUpInside];
+	[button setTitle:@"Save ↓" forState:UIControlStateNormal];
+//CGRect(x:0,y:0,width:w,height:h)
+	button.frame = CGRectMake((self.view.frame.size.width / 2) - 80, self.view.frame.size.height - 60, 160.0, 40.0);
+	[self.view addSubview:button];
+}
+
+
+
+%end

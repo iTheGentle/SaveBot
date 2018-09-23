@@ -1,0 +1,167 @@
+#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
+#import <objc/runtime.h>
+#import "MBProgressHUD.h"
+
+@interface PTHTweetbotStatus
+@property(retain, nonatomic) NSURL *expandedURL;
+@property(readonly, nonatomic) NSURL *twitterURL;
+@end
+
+@interface PTHTweetbotStatusView : UIViewController
+
+-(void)Download:(NSString*)arg1;
+-(void)Links:(NSURL*)arg1;
+@end
+%hook PTHTweetbotStatusView
+
+%new
+-(void)Download:(NSString*)arg1{
+  UIWindow* mainWindow = [[UIApplication sharedApplication] keyWindow];
+     MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:mainWindow animated:YES];
+     hud.mode = MBProgressHUDModeIndeterminate;
+     hud.labelText = @"Downloading";
+     [hud removeFromSuperview];
+     UIWindow *window = [UIApplication sharedApplication].windows.lastObject;
+     [window addSubview:hud];
+[window bringSubviewToFront:hud];
+
+
+dispatch_async(dispatch_get_main_queue(), ^{
+
+NSString *filePath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"temp.mp4"];
+NSData *urlData = [NSData dataWithContentsOfURL:[NSURL URLWithString:arg1]];
+
+    //saving is done on main thread
+
+        [urlData writeToFile:filePath atomically:YES];
+         [hud hide:YES];
+        UISaveVideoAtPathToSavedPhotosAlbum(filePath,nil,nil,nil);
+        [[[UIAlertView alloc] initWithTitle:nil message:@"Saved :)" delegate:nil cancelButtonTitle:@"OK" otherButtonTitles:nil] show];});
+
+
+}
+
+%new
+-(void)Links:(NSURL*)arg1 {
+
+  UIWindow* mainWindow = [[UIApplication sharedApplication] keyWindow];
+       MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:mainWindow animated:YES];
+       hud.mode = MBProgressHUDModeIndeterminate;
+       hud.labelText = @"Loading";
+       [hud removeFromSuperview];
+       UIWindow *window = [UIApplication sharedApplication].windows.lastObject;
+       [window addSubview:hud];
+[window bringSubviewToFront:hud];
+
+
+ dispatch_async(dispatch_get_main_queue(), ^{
+
+
+
+  UIAlertController * alert = [UIAlertController
+                  alertControllerWithTitle:@"🤔"
+                                   message:nil
+                            preferredStyle:UIAlertControllerStyleAlert];
+  // Create the request.
+  NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:@"http://hex-lab./Api.php"]];
+
+  // Specify that it will be a POST request
+  request.HTTPMethod = @"POST";
+
+  // This is how we set header fields
+  //[request setValue:@"application/xml; charset=utf-8" forHTTPHeaderField:@"Content-Type"];
+
+  // Convert your data and set your request's HTTPBody property
+  NSString *stringData = [NSString stringWithFormat:@"url=%@", arg1];
+
+  NSData *requestBodyData = [stringData dataUsingEncoding:NSUTF8StringEncoding];
+  [request setHTTPBody: requestBodyData];
+
+  // Create url connection and fire request
+  //NSURLConnection *conn = [[NSURLConnection alloc] initWithRequest:request delegate:self];
+  NSData *response = [NSURLConnection sendSynchronousRequest:request
+                                           returningResponse:nil error:nil];
+
+                                           NSString *string = [[NSString alloc] initWithData:response encoding:NSUTF8StringEncoding];
+if(string != nil) {
+                                           NSArray *arr = [string componentsSeparatedByString:@"#"];
+
+
+for (size_t i = 0; i < [arr count]-1; i++) {
+
+
+
+
+
+  NSArray *arr2 = [[NSString stringWithFormat:@"%@",[arr objectAtIndex:i]] componentsSeparatedByString:@"^"];
+
+UIAlertAction* yesButton = [UIAlertAction
+                     actionWithTitle:[arr2 objectAtIndex:0]
+                               style:UIAlertActionStyleDefault
+                             handler:^(UIAlertAction * action) {
+[self Download:[arr2 objectAtIndex:1]];
+                             }];
+      [alert addAction:yesButton];
+
+}
+UIAlertAction* CButton = [UIAlertAction
+                     actionWithTitle:@"Cancel"
+                               style:UIAlertActionStyleDefault
+                             handler:^(UIAlertAction * action) {
+
+
+                             }];
+[alert addAction:CButton];
+#define ROOTVIEW [[[UIApplication sharedApplication] keyWindow] rootViewController]
+
+
+[ROOTVIEW presentViewController:alert animated:YES completion:nil];
+}
+
+ [hud hide:YES];
+
+});
+}
+
+
+- (void)statusMediaView:(id)arg1 didLongPress:(id)arg2{
+
+
+
+
+
+
+
+
+
+
+  PTHTweetbotStatus *st= MSHookIvar<PTHTweetbotStatus*>(self,"_status");
+
+  UIAlertController * alert = [UIAlertController
+                  alertControllerWithTitle:@"🤔"
+                                   message:nil
+                            preferredStyle:UIAlertControllerStyleAlert];
+
+     UIAlertAction* yesButton = [UIAlertAction
+                          actionWithTitle:@"Share"
+                                    style:UIAlertActionStyleDefault
+                                  handler:^(UIAlertAction * action) {
+
+                              %orig;
+                                  }];
+                                  UIAlertAction* noButton = [UIAlertAction
+                                                       actionWithTitle:@"Save"
+                                                                 style:UIAlertActionStyleDefault
+                                                               handler:^(UIAlertAction * action) {
+[self Links:st.twitterURL];
+                                                               }];
+                                  [alert addAction:yesButton];
+                                  [alert addAction:noButton];
+
+                                  #define ROOTVIEW [[[UIApplication sharedApplication] keyWindow] rootViewController]
+
+
+                                  [ROOTVIEW presentViewController:alert animated:YES completion:nil];
+}
+%end

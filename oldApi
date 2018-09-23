@@ -1,0 +1,68 @@
+<?php
+function getLinks($c){
+$arr = explode('<div class="small-6 columns">',$c);
+
+for($i=0;$i<count($arr)-1;$i++)
+{
+  $arr2 = explode('<p class="float-left"',$arr[$i+1]);
+  $arr3 = explode('<a href="',$arr2[0]);
+  $arr4 = explode('"',$arr3[1]);
+  $title=explode("/vid/",$arr4[0]);
+  $title=explode("/",$title[1]);
+  if(!empty($title[0]) && !empty($arr4[0])){
+  $str .= $title[0]."^".$arr4[0]."#";
+}
+}
+
+return $str;
+}
+
+function cook(){
+  $ch = curl_init('http://twittervideodownloader.com/');
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  // get headers too with this line
+  curl_setopt($ch, CURLOPT_HEADER, 1);
+  $result = curl_exec($ch);
+  // get cookie
+  // multi-cookie variant contributed by @Combuster in comments
+  preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $result, $matches);
+  $cookies = array();
+  foreach($matches[1] as $item) {
+      parse_str($item, $cookie);
+      $cookies = array_merge($cookies, $cookie);
+  }
+  return $cookie["csrftoken"];
+
+}
+function api($c){
+  $k=cook();
+
+ $cookie ="y.txt";
+$p='csrfmiddlewaretoken='.$k.'&tweet='.$c;
+  $url = 'http://twittervideodownloader.com/download';
+  $ch = curl_init();
+  curl_setopt($ch,CURLOPT_URL, $url);
+
+
+$headers[] = 'Cookie:' . "csrftoken=".$k;
+curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+  curl_setopt($ch,CURLOPT_POST, count($p));
+  curl_setopt($ch, CURLOPT_COOKIESESSION, true );
+  curl_setopt($ch,CURLOPT_POSTFIELDS, $p);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+  curl_setopt($ch, CURLOPT_ENCODING, 'UTF-8');
+
+  $result = curl_exec($ch);
+
+curl_close($ch);
+return getLinks($result);
+}
+
+if(!empty($_POST['url'])){
+echo api($_POST['url']);
+}
+else {
+  echo "NoDATA";
+}
+
+?>
